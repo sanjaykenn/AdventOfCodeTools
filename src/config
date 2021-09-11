@@ -1,0 +1,7 @@
+[DEFAULT]
+PATH_SOLUTION={year}/{day}/part-{part}
+PATH_TEMPLATE=template
+FILE_INPUT=input.txt
+FILE_OUTPUT=output.txt
+EXAMPLE_INPUT_PATH=examples/input
+EXAMPLE_OUTPUT_PATH=examples/output

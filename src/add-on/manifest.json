@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "AdventOfCodeTools",
 	"version": "1.0",
-	"description": "Automated helping tools for Advent Of Code",
+	"description": "Automated helping tools for Advent of Code",
 	"icons": {
 		"48": "icons/advent-of-code-tools-48.png"
 	},
@@ -17,6 +17,6 @@
 		}
 	],
 	"permissions": [
-		"<all_urls>"
+		"ws://localhost:8000/*"
 	]
 }
