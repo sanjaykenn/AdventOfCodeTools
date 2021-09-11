@@ -1,0 +1,22 @@
+{
+	"manifest_version": 2,
+	"name": "AdventOfCodeTools",
+	"version": "1.0",
+	"description": "Automated helping tools for Advent Of Code",
+	"icons": {
+		"48": "icons/advent-of-code-tools-48.png"
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"*://*.adventofcode.com/*"
+			],
+			"js": [
+				"advent-of-code-tools.js"
+			]
+		}
+	],
+	"permissions": [
+		"<all_urls>"
+	]
+}
