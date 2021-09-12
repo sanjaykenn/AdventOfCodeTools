@@ -2,48 +2,66 @@
 
 import argparse
 import asyncio
+import configparser
+import logging
 import os
-import re
 import subprocess
 import sys
-
-import configparser
+from collections import defaultdict
+from datetime import datetime
 from distutils import dir_util
 
 import websockets
+import websockets_routes
 
 
 def start_server(host, port, config):
-	re_answer_path = re.compile('/(\\d+)/day/(\\d+)/answer')
-	re_input_path = re.compile('/(\\d+)/day/(\\d+)')
+	logging.basicConfig(level=logging.INFO)
+	router = websockets_routes.Router()
+	browser_sockets = defaultdict(dict)
+	run_sockets = defaultdict(dict)
 
-	async def handler(websocket, path):
-		m = re_answer_path.match(path)
-		if m:
-			pass
-		else:
-			m = re_input_path.match(path)
-			if not m:
-				return
+	@router.route('/{year}/day/{day}/output')
+	async def handle_output(websocket, path):
+		data = await websocket.recv()
+		run_sockets[path.params['year']][path.params['day']] = websocket
+		logging.info(f'New client connection for {path.params["year"]}/{path.params["day"]}')
+		await browser_sockets[path.params['year']][path.params['day']].send(data.rstrip('\n'))
+		await websocket.wait_closed()
 
-			year, day = m.groups()
-			path = config['PATH_SOLUTION'].format(year=year, day=day, part=1)
-			data = await websocket.recv()
+	@router.route('/{year}/day/{day}/answer')
+	async def handle_answer(websocket, path):
+		logging.info(f'Receiving answers for {path.params["year"]}/{path.params["day"]}')
+		await run_sockets[path.params['year']][path.params['day']].send(await websocket.recv())
+		await run_sockets[path.params['year']][path.params['day']].send(await websocket.recv())
 
-			if not os.path.exists(path):
-				dir_util.copy_tree(config['PATH_TEMPLATE'], path)
-				with open(f'{path}/{config["FILE_INPUT"]}', 'w') as f:
-					f.write(data)
+	@router.route('/{year}/day/{day}')
+	async def handle_input(websocket, path):
+		year, day = path.params['year'], path.params['day']
+		logging.info(f'New browser connection for {year}/{day}')
+		browser_sockets[path.params['year']][path.params['day']] = websocket
 
-				os.makedirs(f'{path}/{config["PATH_EXAMPLE_INPUT"]}')
-				os.makedirs(f'{path}/{config["PATH_EXAMPLE_OUTPUT"]}')
+		path = config['PATH_SOLUTION'].format(year=path.params['year'], day=path.params['day'], part=1)
+		data = await websocket.recv()
 
-	server = websockets.serve(handler, host, port)
+		if not os.path.exists(path):
+			logging.info(f'Copying template for {year}/{day}')
+			dir_util.copy_tree(config['PATH_TEMPLATE'], path)
+			with open(f'{path}/{config["FILE_INPUT"]}', 'w') as f:
+				f.write(data)
+
+			os.makedirs(f'{path}/{config["PATH_EXAMPLE_INPUT"]}')
+			os.makedirs(f'{path}/{config["PATH_EXAMPLE_OUTPUT"]}')
+
+		await websocket.wait_closed()
+		logging.info(f'Closed connection for {year}/{day}')
+
+	server = router.serve(host, port)
 	asyncio.get_event_loop().run_until_complete(server)
 	asyncio.get_event_loop().run_forever()
 
 
-def run_solution(year, day, command, config, part=None):
+def run_solution(host, port, year, day, command, config, part=None):
 	if part is None:
 		if os.path.exists(config['PATH_SOLUTION'].format(year=year, day=day, part=2)):
 			part = 2
@@ -74,6 +92,10 @@ def run_solution(year, day, command, config, part=None):
 
 	success = True
 	for file in os.listdir(example_input_path):
+		with open(f'{example_input_path}/{file}') as f:
+			if f.read() == '':
+				continue
+
 		with open(f'{example_output_path}/{file}') as f:
 			expected = f.read().rstrip('\n')
 
@@ -98,8 +120,24 @@ def run_solution(year, day, command, config, part=None):
 	submit = input(f'\nYour solution:\n\x1b[1m{solution}\x1b[0m\nSubmit? (y/n): ')
 
 	if submit == 'y':
-		# TODO: submit solution
-		print('Nothing happened.')
+		async def upload(url):
+			async with websockets.connect(url) as websocket:
+				await websocket.send(solution)
+				return await websocket.recv() == '1', await websocket.recv()
+
+		correct, answer = asyncio.run(upload(f'ws://{host}:{port}/{year}/day/{day}/output'))
+
+		print(f'\n[{datetime.now()}]')
+		if correct:
+			print('\x1b[32m', end='')
+
+			if part == 1:
+				dir_util.copy_tree('.', '../part-2')
+		else:
+			print('\x1b[31m', end='')
+
+		print(answer)
+		print('\x1b[0m')
 
 
 if __name__ == '__main__':
@@ -129,4 +167,4 @@ if __name__ == '__main__':
 	if args.mode == 'server':
 		start_server(args.host, args.port, aoc_config['DEFAULT'])
 	elif args.mode == 'run':
-		run_solution(args.year, args.day, args.command, aoc_config['DEFAULT'], args.part)
+		run_solution(args.host, args.port, args.year, args.day, args.command, aoc_config['DEFAULT'], args.part)
