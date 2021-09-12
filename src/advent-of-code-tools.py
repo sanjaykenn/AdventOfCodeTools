@@ -16,6 +16,14 @@ import websockets_routes
 
 
 def start_server(host, port, config):
+	"""
+	Start die Advent of Code tools server. This is necessary for browser communication.
+
+	:param host: Server host
+	:param port: Server port
+	:param config: Config from config file
+	"""
+
 	logging.basicConfig(level=logging.INFO)
 	router = websockets_routes.Router()
 	browser_sockets = defaultdict(dict)
@@ -23,6 +31,14 @@ def start_server(host, port, config):
 
 	@router.route('/{year}/day/{day}/output')
 	async def handle_output(websocket, path):
+		"""
+		Handle output that should be submitted
+
+		:param websocket:
+		:param path:
+		:return:
+		"""
+
 		data = await websocket.recv()
 		run_sockets[path.params['year']][path.params['day']] = websocket
 		logging.info(f'New client connection for {path.params["year"]}/{path.params["day"]}')
@@ -31,12 +47,28 @@ def start_server(host, port, config):
 
 	@router.route('/{year}/day/{day}/answer')
 	async def handle_answer(websocket, path):
+		"""
+		Handle answer
+
+		:param websocket:
+		:param path:
+		:return:
+		"""
+
 		logging.info(f'Receiving answers for {path.params["year"]}/{path.params["day"]}')
 		await run_sockets[path.params['year']][path.params['day']].send(await websocket.recv())
 		await run_sockets[path.params['year']][path.params['day']].send(await websocket.recv())
 
 	@router.route('/{year}/day/{day}')
 	async def handle_input(websocket, path):
+		"""
+		Handle input and project creation.
+
+		:param websocket:
+		:param path:
+		:return:
+		"""
+
 		year, day = path.params['year'], path.params['day']
 		logging.info(f'New browser connection for {year}/{day}')
 		browser_sockets[path.params['year']][path.params['day']] = websocket
@@ -62,6 +94,19 @@ def start_server(host, port, config):
 
 
 def run_solution(host, port, year, day, command, config, part=None):
+	"""
+	Run script which calculates solution.
+
+	:param host: Server host
+	:param port: Server port
+	:param year: Exercise year
+	:param day: Exercise day
+	:param command: Command to execute
+	:param config: Config from config file
+	:param part: Part 1 or 2?
+	:return:
+	"""
+
 	if part is None:
 		if os.path.exists(config['PATH_SOLUTION'].format(year=year, day=day, part=2)):
 			part = 2
@@ -81,6 +126,13 @@ def run_solution(host, port, year, day, command, config, part=None):
 	example_output_path = f'{config["PATH_EXAMPLE_OUTPUT"]}'
 
 	def run_script(input_path):
+		"""
+		Run script as subprocess, stdout appears in console and will also be returned
+
+		:param input_path: Input file for stdin
+		:return: stdout (including errors)
+		"""
+
 		process = subprocess.Popen(command, stdin=open(input_path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		script_output = ''
 		while process.poll() is None:
@@ -90,8 +142,9 @@ def run_solution(host, port, year, day, command, config, part=None):
 
 		return script_output.rstrip('\n').split('\n')[-1]
 
-	success = True
+	success = True  # main solution will only run if test cases passed
 	for file in os.listdir(example_input_path):
+		# empty input files should be ignored
 		with open(f'{example_input_path}/{file}') as f:
 			if f.read() == '':
 				continue
@@ -121,6 +174,12 @@ def run_solution(host, port, year, day, command, config, part=None):
 
 	if submit == 'y':
 		async def upload(url):
+			"""
+			Upload solution to websocket URL. Receive server response.
+
+			:param url: Websocket URL
+			:return:
+			"""
 			async with websockets.connect(url) as websocket:
 				await websocket.send(solution)
 				return await websocket.recv() == '1', await websocket.recv()
