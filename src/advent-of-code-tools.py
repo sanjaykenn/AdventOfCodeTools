@@ -6,11 +6,11 @@ import configparser
 import glob
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from collections import defaultdict
 from datetime import datetime
-from distutils import dir_util
 
 import websockets
 import websockets_routes
@@ -79,7 +79,7 @@ def start_server(host, port, config):
 
 		if not os.path.exists(path):
 			logging.info(f'Copying template for {year}/{day}')
-			dir_util.copy_tree(config['PATH_TEMPLATE'], path)
+			shutil.copytree(config['PATH_TEMPLATE'], path)
 			with open(f'{path}/{config["FILE_INPUT"]}', 'w') as f:
 				f.write(data)
 
@@ -206,7 +206,7 @@ def run_solution(host, port, year, day, command, config, part=None):
 			print('\x1b[32m', end='')
 
 			if part == 1:
-				dir_util.copy_tree('.', '../part-2')
+				shutil.copytree('.', '../part-2')
 		else:
 			print('\x1b[31m', end='')
 
@@ -240,4 +240,7 @@ if __name__ == '__main__':
 	if args.mode == 'server':
 		start_server(args.host, args.port, aoc_config['DEFAULT'])
 	elif args.mode == 'run':
-		run_solution(args.host, args.port, args.year, args.day, args.command, aoc_config['DEFAULT'], args.part)
+		try:
+			run_solution(args.host, args.port, args.year, args.day, args.command, aoc_config['DEFAULT'], args.part)
+		except NotADirectoryError as e:
+			print(e, file=sys.stderr)
