@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 	aoc_config = configparser.ConfigParser()
-	aoc_config.read('config')
+	aoc_config.read(f'{os.path.dirname(__file__)}/config')
 
 	os.chdir(args.path)
 
