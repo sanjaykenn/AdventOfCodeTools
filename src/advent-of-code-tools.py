@@ -170,8 +170,14 @@ def run_solution(host, port, year, day, command, config, part=None):
 		return
 
 	print('---------- FINAL SOLUTION ----------')
+	time_start = datetime.now()
 	solution = run_script(config["FILE_INPUT"])
-	submit = input(f'\nYour solution:\n\x1b[1m{solution}\x1b[0m\nSubmit? (y/n): ')
+	time_end = datetime.now()
+	time_display = '{:.3f}s'.format((time_end - time_start).total_seconds())
+
+	print(f'\nYour solution \x1b[2;3m({time_display})\x1b[0m:')
+	print(f'\x1b[1m{solution}\x1b[0m')
+	submit = input(f'Submit? (y/n): ')
 
 	if submit == 'y':
 		async def upload(url):
@@ -181,13 +187,14 @@ def run_solution(host, port, year, day, command, config, part=None):
 			:param url: Websocket URL
 			:return:
 			"""
+
 			async with websockets.connect(url) as websocket:
 				await websocket.send(solution)
 				return await websocket.recv() == '1', await websocket.recv()
 
 		correct, answer = asyncio.run(upload(f'ws://{host}:{port}/{year}/day/{day}/output'))
 
-		print(f'\n[{datetime.now()}]')
+		print(f'\n\x1b[2;3m[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]\x1b[0m')
 		if correct:
 			print('\x1b[32m', end='')
 
@@ -196,8 +203,7 @@ def run_solution(host, port, year, day, command, config, part=None):
 		else:
 			print('\x1b[31m', end='')
 
-		print(answer)
-		print('\x1b[0m')
+		print(f'{answer}\x1b[0m\n')
 
 
 if __name__ == '__main__':
