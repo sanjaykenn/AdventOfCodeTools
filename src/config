@@ -3,5 +3,4 @@ PATH_SOLUTION={year}/{day}/part-{part}
 PATH_TEMPLATE=template
 FILE_INPUT=input.txt
 FILE_OUTPUT=output.txt
-PATH_EXAMPLE_INPUT=examples/input
-PATH_EXAMPLE_OUTPUT=examples/output
+PATH_EXAMPLES=examples

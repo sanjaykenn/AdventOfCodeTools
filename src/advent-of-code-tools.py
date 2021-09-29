@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import configparser
+import glob
 import logging
 import os
 import subprocess
@@ -82,8 +83,7 @@ def start_server(host, port, config):
 			with open(f'{path}/{config["FILE_INPUT"]}', 'w') as f:
 				f.write(data)
 
-			os.makedirs(f'{path}/{config["PATH_EXAMPLE_INPUT"]}')
-			os.makedirs(f'{path}/{config["PATH_EXAMPLE_OUTPUT"]}')
+			os.makedirs(f'{path}/{config["PATH_EXAMPLES"]}', exist_ok=True)
 
 		await websocket.wait_closed()
 		logging.info(f'Closed connection for {year}/{day}')
@@ -122,8 +122,7 @@ def run_solution(host, port, year, day, command, config, part=None):
 
 	os.chdir(path)
 
-	example_input_path = f'{config["PATH_EXAMPLE_INPUT"]}'
-	example_output_path = f'{config["PATH_EXAMPLE_OUTPUT"]}'
+	examples_path = f'{config["PATH_EXAMPLES"]}'
 
 	def run_script(input_path, max_output_size=50):
 		"""
@@ -144,17 +143,25 @@ def run_solution(host, port, year, day, command, config, part=None):
 		return script_output.rstrip('\n').split('\n')[-1]
 
 	success = True  # main solution will only run if test cases passed
-	for file in os.listdir(example_input_path):
+	for file in glob.glob(f'{examples_path}/*.in'):
 		# empty input files should be ignored
-		with open(f'{example_input_path}/{file}') as f:
+		with open(file) as f:
 			if f.read() == '':
 				continue
 
-		with open(f'{example_output_path}/{file}') as f:
-			expected = f.read().rstrip('\n')
+		example_name = os.path.splitext(os.path.basename(file))[0]
+		output_file = f'{examples_path}/{example_name}.out'
 
-		print(f'---------- SOLUTION FOR {file} ----------')
-		output = run_script(f'{example_input_path}/{file}')
+		if not os.path.exists(output_file):
+			continue
+
+		with open(output_file) as f:
+			expected = f.read().rstrip('\n')
+			if expected == '':
+				continue
+
+		print(f'---------- SOLUTION FOR {example_name} ----------')
+		output = run_script(file)
 
 		print()
 		if expected == output:
