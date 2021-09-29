@@ -184,7 +184,11 @@ def run_solution(host, port, year, day, command, config, part=None):
 
 	print(f'\nYour solution \x1b[2;3m({time_display})\x1b[0m:')
 	print(f'\x1b[1m{solution}\x1b[0m')
-	submit = input(f'Submit? (y/n): ')
+	try:
+		submit = input(f'Submit? (y/n): ')
+	except KeyboardInterrupt:
+		print()
+		return
 
 	if submit == 'y':
 		async def upload(url):
@@ -243,4 +247,4 @@ if __name__ == '__main__':
 		try:
 			run_solution(args.host, args.port, args.year, args.day, args.command, aoc_config['DEFAULT'], args.part)
 		except NotADirectoryError as e:
-			print(e, file=sys.stderr)
+			exit(e)
