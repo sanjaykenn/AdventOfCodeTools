@@ -125,19 +125,20 @@ def run_solution(host, port, year, day, command, config, part=None):
 	example_input_path = f'{config["PATH_EXAMPLE_INPUT"]}'
 	example_output_path = f'{config["PATH_EXAMPLE_OUTPUT"]}'
 
-	def run_script(input_path):
+	def run_script(input_path, max_output_size=50):
 		"""
 		Run script as subprocess, stdout appears in console and will also be returned
 
 		:param input_path: Input file for stdin
+		:param max_output_size: Maximal possible length of the solution
 		:return: stdout (including errors)
 		"""
 
 		process = subprocess.Popen(command, stdin=open(input_path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		script_output = ''
-		while process.poll() is None:
+		while process.poll() is None or process.stdout.peek():
 			char = process.stdout.read(1).decode()
-			script_output += char
+			script_output = (script_output + char)[-max_output_size:]
 			print(char, end='')
 
 		return script_output.rstrip('\n').split('\n')[-1]
