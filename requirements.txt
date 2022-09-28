@@ -1,0 +1,5 @@
+repoze.lru==0.7
+Routes==2.5.1
+six==1.16.0
+websockets==10.3
+websockets-routes==0.2
